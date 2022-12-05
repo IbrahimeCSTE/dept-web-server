@@ -28,6 +28,9 @@ const addStudent = client.db("CSTE").collection("students");
 const addTeacher = client.db("CSTE").collection("Teacher");
 const chairmanMsg = client.db("CSTE").collection("ChairmanMsg");
 const programmer = client.db("CSTE").collection("Programmer");
+const otherExprience = client.db("CSTE").collection("otherExp");
+const galaryCollection = client.db("CSTE").collection("Galay");
+const materialCollection = client.db("CSTE").collection("Material");
 
 //router
 
@@ -283,8 +286,73 @@ app.post("/api/programmer/add", async (req, res) => {
 });
 app.get("/api/programmer/add", async (req, res) => {
   try {
-    const coder = await programmer.find({}).limit(10).toArray();
+    const coder = await programmer
+      .find({})
+      .limit(10)
+      .sort({ rating: -1 })
+      .toArray();
     res.status(200).send({ coderList: coder });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//other exprience
+app.post("/api/other/exp/add", async (req, res) => {
+  try {
+    const exp = req.body;
+    // console.log(coder);
+    await otherExprience.insertOne(exp);
+    res.status(200).send({ msg: `${exp.name} Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.get("/api/other/exp/add", async (req, res) => {
+  try {
+    const expList = await otherExprience.find({}).limit(10).toArray();
+    res.status(200).send({ expList: expList });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//galary
+app.post("/api/img/add", async (req, res) => {
+  try {
+    const img = req.body;
+    // console.log(coder);
+    await galaryCollection.insertOne(img);
+    res.status(200).send({ msg: `Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.get("/api/img/add", async (req, res) => {
+  try {
+    const allImg = await galaryCollection
+      .find({})
+      .limit(8)
+      .sort({ date: -1 })
+      .toArray();
+    res.status(200).send({ imgList: allImg });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//add materials
+app.post("/api/add/material", async (req, res) => {
+  try {
+    const data = req.body;
+    // console.log(coder);
+    await materialCollection.insertOne(data);
+    res.status(200).send({ msg: `Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.get("/api/add/material", async (req, res) => {
+  try {
+    const allMaterials = await materialCollection.find({}).toArray();
+    res.status(200).send({ material: allMaterials });
   } catch (err) {
     res.status(400).send({ error: err.massage });
   }
