@@ -31,6 +31,8 @@ const programmer = client.db("CSTE").collection("Programmer");
 const otherExprience = client.db("CSTE").collection("otherExp");
 const galaryCollection = client.db("CSTE").collection("Galay");
 const materialCollection = client.db("CSTE").collection("Material");
+const clubMemberCollection = client.db("CSTE").collection("Club-Members");
+const jobCollection = client.db("CSTE").collection("Job");
 
 //router
 
@@ -166,8 +168,16 @@ app.post("/api/student/add", async (req, res) => {
 //get all student
 app.get("/api/student/add", async (req, res) => {
   try {
+    const batch = req.query.batch;
+    //console.log(batch);
     const allStudent = await addStudent.find({}).toArray();
-    res.status(200).send(allStudent);
+    if (batch && batch !== "all") {
+      const filterStudent = allStudent.filter((st) => st.batch === batch);
+      res.status(200).send(filterStudent);
+      // console.log(filterStudent);
+    } else {
+      res.status(200).send(allStudent);
+    }
   } catch (err) {
     res.status(400).send({ error: err.massage });
   }
@@ -257,6 +267,17 @@ app.get("/api/teacher/add", async (req, res) => {
   try {
     const allTeacher = await addTeacher.find({}).toArray();
     res.status(200).send(allTeacher);
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.get("/api/teacher/add/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const teacher = await addTeacher.findOne({
+      _id: ObjectId(id),
+    });
+    res.status(200).send(teacher);
   } catch (err) {
     res.status(400).send({ error: err.massage });
   }
@@ -353,6 +374,50 @@ app.get("/api/add/material", async (req, res) => {
   try {
     const allMaterials = await materialCollection.find({}).toArray();
     res.status(200).send({ material: allMaterials });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//add club members
+app.post("/api/add/club/members", async (req, res) => {
+  try {
+    const data = req.body;
+    // console.log(coder);
+    await clubMemberCollection.insertOne(data);
+    res.status(200).send({ msg: `Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.get("/api/add/club/members", async (req, res) => {
+  try {
+    const allMember = await clubMemberCollection.find({}).toArray();
+    res.status(200).send({ members: allMember });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//job
+app.post("/api/add/job", async (req, res) => {
+  try {
+    const jobPost = req.body;
+    // console.log(coder);
+    await jobCollection.insertOne(jobPost);
+    res.status(200).send({ msg: `Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.get("/api/add/job", async (req, res) => {
+  try {
+    const job = parseInt(req.query.job);
+    if (job) {
+      const allJobPost = await jobCollection.find({}).limit(job).toArray();
+      res.status(200).send({ jobList: allJobPost });
+    } else {
+      const allJobPost = await jobCollection.find({}).toArray();
+      res.status(200).send({ jobList: allJobPost });
+    }
   } catch (err) {
     res.status(400).send({ error: err.massage });
   }
