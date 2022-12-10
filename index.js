@@ -33,6 +33,7 @@ const galaryCollection = client.db("CSTE").collection("Galay");
 const materialCollection = client.db("CSTE").collection("Material");
 const clubMemberCollection = client.db("CSTE").collection("Club-Members");
 const jobCollection = client.db("CSTE").collection("Job");
+const curriculumCollection = client.db("CSTE").collection("Curriculum");
 
 //router
 
@@ -418,6 +419,29 @@ app.get("/api/add/job", async (req, res) => {
       const allJobPost = await jobCollection.find({}).toArray();
       res.status(200).send({ jobList: allJobPost });
     }
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//curriculum
+app.post("/api/add/curriculum", async (req, res) => {
+  try {
+    const curruculum = req.body;
+    //console.log(curruculum);
+    await curriculumCollection.insertOne(curruculum);
+    res.status(200).send({ msg: `Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.get("/api/add/curriculum/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const course = await curriculumCollection
+      .find({ formData: id })
+      .sort({ courseCode: 1 })
+      .toArray();
+    res.status(200).send({ course: course });
   } catch (err) {
     res.status(400).send({ error: err.massage });
   }
