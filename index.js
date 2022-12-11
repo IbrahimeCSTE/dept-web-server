@@ -34,6 +34,8 @@ const materialCollection = client.db("CSTE").collection("Material");
 const clubMemberCollection = client.db("CSTE").collection("Club-Members");
 const jobCollection = client.db("CSTE").collection("Job");
 const curriculumCollection = client.db("CSTE").collection("Curriculum");
+const newsCollection = client.db("CSTE").collection("News");
+const noticeCollection = client.db("CSTE").collection("Notice");
 
 //router
 
@@ -442,6 +444,90 @@ app.get("/api/add/curriculum/:id", async (req, res) => {
       .sort({ courseCode: 1 })
       .toArray();
     res.status(200).send({ course: course });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//news
+app.post("/api/add/news", async (req, res) => {
+  try {
+    const news = req.body;
+    await newsCollection.insertOne(news);
+    res.status(200).send({ msg: `Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//home news
+app.get("/api/add/news", async (req, res) => {
+  try {
+    const news = await newsCollection.find({}).sort({ date: 1 }).toArray();
+    res.status(200).send({ news: news[0] });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//all news
+app.get("/api/add/all/news", async (req, res) => {
+  try {
+    const news = await newsCollection.find({}).sort({ date: 1 }).toArray();
+    res.status(200).send({ allNews: news });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.get("/api/add/news/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const news = await newsCollection.findOne({ _id: ObjectId(id) });
+    res.status(200).send({ singleNews: news });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+app.delete("/api/add/news/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    await newsCollection.deleteOne({ _id: ObjectId(id) });
+    res.status(200).send({ msg: "deleted" });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//Notice
+app.post("/api/add/notice", async (req, res) => {
+  try {
+    const notice = req.body;
+    await noticeCollection.insertOne(notice);
+    res.status(200).send({ msg: `Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//home notice
+app.get("/api/add/notice", async (req, res) => {
+  try {
+    const notice = await noticeCollection.find({}).limit(5).toArray();
+    res.status(200).send({ notice: notice });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//all Notice
+app.get("/api/add/all/notice", async (req, res) => {
+  try {
+    const notice = await noticeCollection.find({}).toArray();
+    res.status(200).send({ allNotice: notice });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+
+app.delete("/api/add/news/:id1", async (req, res) => {
+  try {
+    const id = req.params.id;
+    await newsCollection.deleteOne({ _id: ObjectId(id) });
+    res.status(200).send({ msg: "deleted" });
   } catch (err) {
     res.status(400).send({ error: err.massage });
   }
