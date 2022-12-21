@@ -3,6 +3,7 @@ const SSLCommerzPayment = require("sslcommerz");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { v4: uuidv4 } = require("uuid");
 const verifyJwt = require("./jwt");
 require("dotenv").config();
 // middle wares
@@ -38,7 +39,8 @@ const jobCollection = client.db("CSTE").collection("Job");
 const curriculumCollection = client.db("CSTE").collection("Curriculum");
 const newsCollection = client.db("CSTE").collection("News");
 const noticeCollection = client.db("CSTE").collection("Notice");
-const regFormCollection = client.db("CSTE").collection("Registration");
+const onlineFormCollection = client.db("CSTE").collection("OnlineForm");
+const examFeeFormCollection = client.db("CSTE").collection("Exam-Fee");
 
 //router
 
@@ -98,7 +100,32 @@ app.post("/api/user/login", async (req, res) => {
     res.status(400).send({ error: err.massage });
   }
 });
+//user profile update
+app.patch("/api/user/update/:id", verifyJwt, async (req, res) => {
+  try {
+    const stuId = req.params.id;
+    const student = await addStudent.findOne({ studentId: stuId });
 
+    const query = { studentId: stuId };
+    const updatedReview = {
+      $set: {
+        name: req.body.name ? req.body.name : student.name,
+        email: req.body.email ? req.body.email : student.email,
+        password: req.body.password ? req.body.password : student.password,
+        session: req.body.session ? req.body.session : student.session,
+        contactNo: req.body.contactNo ? req.body.contactNo : student.contactNo,
+        batch: req.body.batch ? req.body.batch : student.batch,
+        dept: req.body.dept ? req.body.dept : student.dept,
+        blood: req.body.blood ? req.body.blood : student.blood,
+        adress: req.body.adress ? req.body.adress : student.adress,
+      },
+    };
+    await addStudent.updateOne(query, updatedReview);
+    res.status(200).send({ msg: "Updated" });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
 //user get all register router
 app.get("/api/user", async (req, res) => {
   try {
@@ -137,7 +164,7 @@ app.get("/api/user/registration/:id", async (req, res) => {
   }
 });
 //chairman msg
-app.post("/api/chairman/sms", async (req, res) => {
+app.post("/api/chairman/sms", verifyJwt, async (req, res) => {
   try {
     const msg = req.body;
     await chairmanMsg.insertOne(msg);
@@ -155,7 +182,7 @@ app.get("/api/chairman/sms", async (req, res) => {
   }
 });
 //add student api
-app.post("/api/student/add", async (req, res) => {
+app.post("/api/student/add", verifyJwt, async (req, res) => {
   try {
     const student = req.body;
     const exsistStudent = await addStudent.findOne({
@@ -252,7 +279,7 @@ app.patch("/api/student/ssc/:id", async (req, res) => {
 });
 
 //add teacher api
-app.post("/api/teacher/add", async (req, res) => {
+app.post("/api/teacher/add", verifyJwt, async (req, res) => {
   try {
     const teacher = req.body;
     const exsistTeacher = await addTeacher.findOne({
@@ -536,22 +563,19 @@ app.delete("/api/add/news/:id1", async (req, res) => {
   }
 });
 
-//test api
-app.get("/", (req, res) => {
-  res.status(200).send("Hi server!");
-});
-
 //payment init
-app.post("/init", async (req, res) => {
-  //console.log(req.body);
+app.post("/init", verifyJwt, async (req, res) => {
+  // console.log(req.body);
   try {
     const data = {
       total_amount: req.body.fee,
+      form_ref: req.body.ref,
       currency: "BDT",
-      tran_id: req.body.studentInfo.studentID,
-      success_url: "http://localhost:5000/success",
-      fail_url: "http://localhost:5000/fail",
-      cancel_url: "http://localhost:5000/cancel",
+      tran_id: uuidv4(),
+      stu_id: req.body.studentInfo.studentID,
+      success_url: "https://cste-club-ibrahimecste.vercel.app/success",
+      fail_url: "https://cste-club-ibrahimecste.vercel.app/fail",
+      cancel_url: "https://cste-club-ibrahimecste.vercel.app/cancel",
       ipn_url: "http://yoursite.com/ipn",
       studentInfo: req.body.studentInfo,
       regFormInfo: req.body.regForm,
@@ -584,10 +608,10 @@ app.post("/init", async (req, res) => {
       value_d: "ref004_D",
     };
 
-    await regFormCollection.insertOne(data);
+    await onlineFormCollection.insertOne(data);
     const sslcommer = new SSLCommerzPayment(
-      "nstu639d92a0792d5",
-      "nstu639d92a0792d5@ssl",
+      process.env.SSL_STORE_ID,
+      process.env.SSL_SECRET_KEY,
       false
     ); //true for live default false for sandbox
     sslcommer.init(data).then((data) => {
@@ -598,7 +622,7 @@ app.post("/init", async (req, res) => {
         res.status(200).send({ paymentUrl: data.GatewayPageURL });
       } else {
         res.status(200).send({
-          message: "SSL session was not successful",
+          error: "SSL session was not successful",
         });
       }
     });
@@ -609,35 +633,53 @@ app.post("/init", async (req, res) => {
   }
 });
 app.post("/success", async (req, res) => {
-  await regFormCollection.updateOne(
+  await onlineFormCollection.updateOne(
     { tran_id: req.body.tran_id },
     {
       $set: {
         payment: true,
+        paymentDetails: req.body,
       },
     }
   );
-  const form = await regFormCollection.findOne({ tran_id: req.body.tran_id });
-  await addStudent.updateOne(
-    { studentId: req.body.tran_id },
-    {
-      $set: {
-        form: form,
-      },
-    }
-  );
+  const form = await onlineFormCollection.findOne({
+    tran_id: req.body.tran_id,
+  });
+  if (form.form_ref === "reg") {
+    await addStudent.updateOne(
+      { studentId: form.stu_id },
+      {
+        $set: {
+          form: form,
+        },
+      }
+    );
+  }
+  if (form.form_ref === "admit") {
+    await addStudent.updateOne(
+      { studentId: form.stu_id },
+      {
+        $set: {
+          examFee: form,
+        },
+      }
+    );
+  }
 
-  res.redirect(`http://localhost:3000/success/${req.body.tran_id}`);
-
-  res.status(200).send({ data: req.body });
+  res.redirect(`https://cste-dept.web.app/success/${req.body.tran_id}`);
 });
 app.post("/fail", async (req, res) => {
-  await regFormCollection.deleteOne({ tran_id: req.body.tran_id });
-  res.redirect(`http://localhost:3000`);
+  await onlineFormCollection.deleteOne({ tran_id: req.body.tran_id });
+  res.redirect(`https://cste-dept.web.app/`);
 });
 app.post("/cancel", async (req, res) => {
-  await regFormCollection.deleteOne({ tran_id: req.body.tran_id });
-  res.redirect(`http://localhost:3000`);
+  await onlineFormCollection.deleteOne({ tran_id: req.body.tran_id });
+  res.redirect(`https://cste-dept.web.app/`);
+});
+
+//test api
+app.get("/", (req, res) => {
+  res.status(200).send("Hi server!");
 });
 
 app.listen(PORT, () => {

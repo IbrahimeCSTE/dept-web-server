@@ -3,7 +3,7 @@ require("dotenv").config();
 //jwt
 const verifyJwt = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  //console.log(authHeader);
+  console.log(authHeader);
   if (!authHeader) {
     return res.status(401).send({ msg: "unauthorized access" });
   }
