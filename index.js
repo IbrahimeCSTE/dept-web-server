@@ -41,6 +41,7 @@ const newsCollection = client.db("CSTE").collection("News");
 const noticeCollection = client.db("CSTE").collection("Notice");
 const onlineFormCollection = client.db("CSTE").collection("OnlineForm");
 const examFeeFormCollection = client.db("CSTE").collection("Exam-Fee");
+const studentNoticeCollection = client.db("CSTE").collection("Student-Notice");
 
 //router
 
@@ -562,7 +563,67 @@ app.delete("/api/add/news/:id1", async (req, res) => {
     res.status(400).send({ error: err.massage });
   }
 });
+//student notice post
+app.post("/api/add/student/notice", verifyJwt, async (req, res) => {
+  try {
+    const notice = req.body;
+    await studentNoticeCollection.insertOne(notice);
+    res.status(200).send({ msg: `Added` });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//student notice get by batch
+app.get("/api/add/student/notice/:batch", verifyJwt, async (req, res) => {
+  try {
+    const batch = req.params.batch;
+    //console.log(batch);
+    const notice = await studentNoticeCollection
+      .find({ batch: batch })
+      .sort({ time: -1 })
+      .limit(5)
+      .toArray();
+    res.status(200).send({ batchNotice: notice });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//student notice visit or not
+app.patch("/api/visit/student/notice", verifyJwt, async (req, res) => {
+  try {
+    const read = req.body;
+    const findNotice = await studentNoticeCollection.findOne({
+      _id: ObjectId(read.id),
+    });
 
+    let exitsId = findNotice.visit.includes(read.stuId);
+    // console.log(exitsId);
+    if (!exitsId) {
+      let visitId = [...findNotice.visit, read.stuId];
+      const query = { _id: ObjectId(read.id) };
+      const updatedReview = {
+        $set: {
+          visit: visitId,
+        },
+      };
+      await studentNoticeCollection.updateOne(query, updatedReview);
+    }
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//student single notice
+app.get("/api/read/student/notice/:id", verifyJwt, async (req, res) => {
+  try {
+    const id = req.params.id;
+    //console.log(batch);
+    const notice = await studentNoticeCollection.findOne({ _id: ObjectId(id) });
+    //console.log(notice);
+    res.status(200).send({ readNotice: notice });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
 //payment init
 app.post("/init", verifyJwt, async (req, res) => {
   // console.log(req.body);
