@@ -42,7 +42,18 @@ const noticeCollection = client.db("CSTE").collection("Notice");
 const onlineFormCollection = client.db("CSTE").collection("OnlineForm");
 const examFeeFormCollection = client.db("CSTE").collection("Exam-Fee");
 const studentNoticeCollection = client.db("CSTE").collection("Student-Notice");
-
+// //location
+// const IPGeolocationAPI = require("ip-geolocation-api-javascript-sdk");
+// const ipgeolocationApi = new IPGeolocationAPI(
+//   process.env.LOCATION_API_KYE,
+//   false
+// );
+// app.get("/user/location", async (req, res) => {
+//   ipgeolocationApi.getGeolocation(handleResponse);
+//   function handleResponse(userLocation) {
+//     res.send({ location: userLocation });
+//   }
+// });
 //router
 
 //user post register router
@@ -72,11 +83,29 @@ app.post("/api/user/login", async (req, res) => {
     const loginUser = await addStudent.findOne({
       studentId: user.studentID,
     });
-
-    // const loginUserPass = await userCollection.findOne({
-    //   stduentPassword: req.body.stduentPassword,
-    // });
-    if (loginUser) {
+    if (user.eduMail) {
+      const eduUser = await addStudent.findOne({
+        email: user.eduMail,
+      });
+      // console.log(eduUser);
+      if (eduUser) {
+        const payload = {
+          user: {
+            id: user.id,
+          },
+        };
+        const token = jwt.sign(payload, process.env.JWT_SECRETE, {
+          expiresIn: "1d",
+        });
+        res.status(200).send({
+          msg: `Login by ${eduUser.studentId}`,
+          token: token,
+          student: eduUser,
+        });
+      } else {
+        res.status(200).send({ error: "Invalid email" });
+      }
+    } else if (loginUser) {
       if (loginUser.password === req.body.stduentPassword) {
         const payload = {
           user: {
@@ -553,7 +582,17 @@ app.get("/api/add/all/notice", async (req, res) => {
     res.status(400).send({ error: err.massage });
   }
 });
-
+//public notice  delete
+app.delete("/api/add/public/notice/:id", verifyJwt, async (req, res) => {
+  try {
+    const id = req.params.id;
+    await noticeCollection.deleteOne({ _id: ObjectId(id) });
+    res.status(200).send({ msg: "deleted" });
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
+});
+//news delete
 app.delete("/api/add/news/:id1", async (req, res) => {
   try {
     const id = req.params.id;
@@ -736,6 +775,29 @@ app.post("/fail", async (req, res) => {
 app.post("/cancel", async (req, res) => {
   await onlineFormCollection.deleteOne({ tran_id: req.body.tran_id });
   res.redirect(`https://cste-dept.web.app/`);
+});
+//add reg time
+
+app.patch("/api/add/reg/time", verifyJwt, async (req, res) => {
+  try {
+    const StuBatch = req.body.batch;
+    console.log(StuBatch);
+    if (StuBatch) {
+      await addStudent.updateMany(
+        { batch: StuBatch },
+        {
+          $set: {
+            RegDate: req.body,
+          },
+        }
+      );
+      res.status(200).send({ msg: "Added" });
+    } else {
+      res.status(200).send({ msg: "Add Batch Field" });
+    }
+  } catch (err) {
+    res.status(400).send({ error: err.massage });
+  }
 });
 
 //test api
